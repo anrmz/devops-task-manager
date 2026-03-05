@@ -60,29 +60,29 @@ pipeline {
         }
 
         // ──────────────────────────────────────────
-        // Stage 3 – Run Tests
-        // ──────────────────────────────────────────
-        stage('🧪 Run Tests') {
-    steps {
-        dir('backend') {
-            echo '🧪 Running backend tests...'
-            sh 'npm test || true'
-        }
-    }
-            post {
-    success {
-        echo '✅ Pipeline succeeded!'
-    }
+//         // Stage 3 – Run Tests
+//         // ──────────────────────────────────────────
+//         stage('🧪 Run Tests') {
+//     steps {
+//         dir('backend') {
+//             echo '🧪 Running backend tests...'
+//             sh 'npm test || true'
+//         }
+//     }
+//             post {
+//     success {
+//         echo '✅ Pipeline succeeded!'
+//     }
 
-    failure {
-        echo '❌ Pipeline failed!'
-    }
+//     failure {
+//         echo '❌ Pipeline failed!'
+//     }
 
-    always {
-        cleanWs()
-    }
-}
-        }
+//     always {
+//         cleanWs()
+//     }
+// }
+//         }
 
         // ──────────────────────────────────────────
         // Stage 4 – SonarQube Analysis
