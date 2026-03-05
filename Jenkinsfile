@@ -96,7 +96,7 @@ pipeline {
                 sh """
                 ${scannerHome}/bin/sonar-scanner \
                   -Dsonar.projectKey=devops-task-manager \
-                  -Dsonar.sources=. \
+                  -Dsonar.sources=backend,frontend \
                   -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
                   -Dsonar.token=${SONAR_TOKEN}
                 """
@@ -112,7 +112,7 @@ pipeline {
         stage('🐳 Build Docker Images') {
             steps {
                 echo '🐳 Building Docker images...'
-                sh 'docker compose build --no-cache'
+                sh 'docker-compose build --no-cache'
             }
         }
 
@@ -120,16 +120,13 @@ pipeline {
         // Stage 6 – Deploy with Docker Compose
         // ──────────────────────────────────────────
         stage('🚀 Deploy') {
-            steps {
-                echo '🚀 Deploying application with Docker Compose...'
-                sh '''
-                    docker compose down --remove-orphans
-                    docker compose up -d
-                    echo "⏳ Waiting for services to start..."
-                    sleep 15
-                    docker compose ps
-                '''
-            }
+    steps {
+        echo '🚀 Deploying application...'
+        sh '''
+        docker-compose down
+        docker-compose up -d
+        '''
+    }
         }
     }
 
