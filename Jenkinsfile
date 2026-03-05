@@ -75,15 +75,6 @@ pipeline {
             }
         }
 
-        stage('☕ Install Java') {
-            steps {
-                sh '''
-                apt-get update
-                apt-get install -y openjdk-17-jre
-                '''
-            }
-        }
-
         stage('🔍 SonarQube Analysis') {
             steps {
                 script {
