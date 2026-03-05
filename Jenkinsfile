@@ -10,10 +10,6 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
     }
 
-    triggers {
-        githubPush()
-    }
-
     stages {
 
         stage('📥 Checkout') {
@@ -25,16 +21,18 @@ pipeline {
         }
 
         stage('📦 Install Dependencies') {
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root:root'
-                }
-            }
 
             parallel {
 
                 stage('Backend') {
+
+                    agent {
+                        docker {
+                            image 'node:18'
+                            args '-u root:root'
+                        }
+                    }
+
                     steps {
                         dir('backend') {
                             sh 'npm ci'
@@ -43,6 +41,14 @@ pipeline {
                 }
 
                 stage('Frontend') {
+
+                    agent {
+                        docker {
+                            image 'node:18'
+                            args '-u root:root'
+                        }
+                    }
+
                     steps {
                         dir('frontend') {
                             sh 'npm ci'
@@ -54,6 +60,7 @@ pipeline {
         }
 
         stage('🧪 Run Tests') {
+
             agent {
                 docker {
                     image 'node:18'
@@ -68,7 +75,7 @@ pipeline {
             }
         }
 
-        stage('☕ Install Java (for SonarQube)') {
+        stage('☕ Install Java') {
             steps {
                 sh '''
                 apt-get update
@@ -80,9 +87,11 @@ pipeline {
         stage('🔍 SonarQube Analysis') {
             steps {
                 script {
+
                     def scannerHome = tool 'sonar-scanner'
 
                     withSonarQubeEnv('SonarQube') {
+
                         sh """
                         ${scannerHome}/bin/sonar-scanner \
                         -Dsonar.projectKey=devops-task-manager \
@@ -98,14 +107,12 @@ pipeline {
 
         stage('🐳 Build Docker Images') {
             steps {
-                echo 'Building Docker images'
                 sh 'docker compose build'
             }
         }
 
         stage('🚀 Deploy Application') {
             steps {
-                echo 'Deploying application'
                 sh '''
                 docker compose down
                 docker compose up -d
@@ -116,6 +123,7 @@ pipeline {
     }
 
     post {
+
         success {
             echo 'Pipeline succeeded'
         }
@@ -127,5 +135,6 @@ pipeline {
         always {
             cleanWs()
         }
+
     }
 }
