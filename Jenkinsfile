@@ -5,7 +5,6 @@ pipeline {
 
     environment {
         // Slack webhook — add SLACK_WEBHOOK in Jenkins Credentials
-        SLACK_WEBHOOK = credentials('slack-webhook-url')
         SONAR_TOKEN   = credentials('sonar-token')
         COMPOSE_FILE  = 'docker-compose.yml'
         APP_NAME      = 'devops-task-manager'
@@ -71,11 +70,18 @@ pipeline {
                 }
             }
             post {
-                always {
-                    // Publish JUnit test results if available
-                    junit allowEmptyResults: true, testResults: 'backend/test-results/**/*.xml'
-                }
-            }
+    success {
+        echo '✅ Pipeline succeeded!'
+    }
+
+    failure {
+        echo '❌ Pipeline failed!'
+    }
+
+    always {
+        cleanWs()
+    }
+}
         }
 
         // ──────────────────────────────────────────
