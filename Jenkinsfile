@@ -94,27 +94,21 @@ pipeline {
             }
         }
 
-        stage('🐳 Install Docker Compose') {
-            steps {
-                sh '''
-                apt-get update
-                apt-get install -y docker-compose
-                docker-compose version
-                '''
-            }
-        }
+       
 
         stage('🐳 Build Docker Images') {
             steps {
-                sh 'docker-compose build'
+                echo 'Building Docker images'
+                sh 'docker compose build'
             }
         }
 
         stage('🚀 Deploy Application') {
             steps {
+                echo 'Deploying application'
                 sh '''
-                docker-compose down
-                docker-compose up -d
+                docker compose down
+                docker compose up -d
                 '''
             }
         }
