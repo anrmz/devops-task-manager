@@ -6,11 +6,11 @@ FROM node:20-alpine AS base
 WORKDIR /app
 
 # Install dependencies first (Docker cache layer)
-COPY package.json ./
+COPY backend/package.json ./
 RUN npm install --omit=dev
 
 # Copy source code
-COPY src/ ./src/
+COPY backend/src/ ./src/
 
 # Use non-root user for security
 RUN addgroup -S appgroup && adduser -S appuser -G appgroup

@@ -15,7 +15,7 @@ services:
     networks:
       - taskmanager-net
     healthcheck:
-      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      test: [ 'CMD', 'mongosh', '--eval', "db.adminCommand('ping')" ]
       interval: 30s
       timeout: 10s
       retries: 5
@@ -26,8 +26,8 @@ services:
   # ─────────────────────────────────────────
   backend:
     build:
-      context: ./backend
-      dockerfile: ../docker/Dockerfile.backend
+      context: .
+      dockerfile: docker/Dockerfile.backend
     container_name: taskmanager-backend
     restart: unless-stopped
     ports:
@@ -42,7 +42,7 @@ services:
     networks:
       - taskmanager-net
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:5000/health']
+      test: [ 'CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:5000/health' ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -53,8 +53,8 @@ services:
   # ─────────────────────────────────────────
   frontend:
     build:
-      context: ./frontend
-      dockerfile: ../docker/Dockerfile.frontend
+      context: .
+      dockerfile: docker/Dockerfile.frontend
       args:
         REACT_APP_API_URL: http://localhost:5000
     container_name: taskmanager-frontend
@@ -67,7 +67,7 @@ services:
     networks:
       - taskmanager-net
     healthcheck:
-      test: ['CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000']
+      test: [ 'CMD', 'wget', '--no-verbose', '--tries=1', '--spider', 'http://localhost:3000' ]
       interval: 30s
       timeout: 5s
       retries: 3
