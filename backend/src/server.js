@@ -31,9 +31,12 @@ mongoose
     .connect(MONGO_URI)
     .then(() => {
         console.log('✅ Connected to MongoDB');
-        app.listen(PORT, () => {
-            console.log(`🚀 Server running on port ${PORT}`);
-        });
+        // Prevent port collision in Jest tests by conditionally listening
+        if (process.env.NODE_ENV !== 'test') {
+            app.listen(PORT, () => {
+                console.log(`🚀 Server running on port ${PORT}`);
+            });
+        }
     })
     .catch((err) => {
         console.error('❌ MongoDB connection error:', err.message);
