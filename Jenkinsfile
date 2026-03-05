@@ -88,19 +88,22 @@ pipeline {
         // Stage 4 – SonarQube Analysis
         // ──────────────────────────────────────────
         stage('🔍 SonarQube Analysis') {
-            steps {
-                echo '🔍 Running SonarQube code quality analysis...'
-                withSonarQubeEnv('SonarQube') {
-                    sh '''
-                        sonar-scanner \
-                            -Dsonar.projectKey=devops-task-manager \
-                            -Dsonar.sources=. \
-                            -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
-                            -Dsonar.token=${SONAR_TOKEN}
-                    '''
-                }
+    steps {
+        echo '🔍 Running SonarQube code quality analysis...'
+        script {
+            def scannerHome = tool 'sonar-scanner'
+            withSonarQubeEnv('SonarQube') {
+                sh """
+                ${scannerHome}/bin/sonar-scanner \
+                  -Dsonar.projectKey=devops-task-manager \
+                  -Dsonar.sources=. \
+                  -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
+                  -Dsonar.token=${SONAR_TOKEN}
+                """
             }
         }
+    }
+
 
         // ──────────────────────────────────────────
         // Stage 5 – Build Docker Images
