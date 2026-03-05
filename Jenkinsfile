@@ -2,21 +2,18 @@ pipeline {
 
     agent {
         docker {
-            image 'node:18'
+            image 'node:18-bullseye'
             args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
         }
     }
 
     environment {
-        SONAR_TOKEN  = credentials('sonar-token')
-        COMPOSE_FILE = 'docker-compose.yml'
-        APP_NAME     = 'devops-task-manager'
+        SONAR_TOKEN = credentials('sonar-token')
     }
 
     options {
         timeout(time: 30, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10'))
-        disableConcurrentBuilds()
     }
 
     triggers {
@@ -25,38 +22,25 @@ pipeline {
 
     stages {
 
-        // ─────────────────────────────
-        // Checkout Source Code
-        // ─────────────────────────────
         stage('📥 Checkout') {
             steps {
-                echo '⬇️ Checking out source code...'
+                echo 'Checking out source code'
                 checkout scm
             }
         }
 
-        // ─────────────────────────────
-        // Fix Git Safe Directory
-        // ─────────────────────────────
         stage('🔧 Fix Git Safe Directory') {
             steps {
-                sh '''
-                git config --global --add safe.directory /var/jenkins_home/workspace/devops-task-manager
-                '''
+                sh 'git config --global --add safe.directory $WORKSPACE'
             }
         }
 
-        // ─────────────────────────────
-        // Install Dependencies
-        // ─────────────────────────────
         stage('📦 Install Dependencies') {
-
             parallel {
 
                 stage('Backend') {
                     steps {
                         dir('backend') {
-                            echo '📦 Installing backend dependencies...'
                             sh 'npm ci'
                         }
                     }
@@ -65,7 +49,6 @@ pipeline {
                 stage('Frontend') {
                     steps {
                         dir('frontend') {
-                            echo '📦 Installing frontend dependencies...'
                             sh 'npm ci'
                         }
                     }
@@ -74,33 +57,29 @@ pipeline {
             }
         }
 
-        // ─────────────────────────────
-        // Run Tests
-        // ─────────────────────────────
         stage('🧪 Run Tests') {
             steps {
                 dir('backend') {
-                    echo '🧪 Running backend tests...'
                     sh 'npm test || true'
                 }
             }
         }
 
-        // ─────────────────────────────
-        // SonarQube Analysis
-        // ─────────────────────────────
-        stage('🔍 SonarQube Analysis') {
-
+        stage('☕ Install Java (for SonarQube)') {
             steps {
+                sh '''
+                apt-get update
+                apt-get install -y openjdk-17-jre
+                java -version
+                '''
+            }
+        }
 
-                echo '🔍 Running SonarQube analysis...'
-
+        stage('🔍 SonarQube Analysis') {
+            steps {
                 script {
-
                     def scannerHome = tool 'sonar-scanner'
-
                     withSonarQubeEnv('SonarQube') {
-
                         sh """
                         ${scannerHome}/bin/sonar-scanner \
                         -Dsonar.projectKey=devops-task-manager \
@@ -109,56 +88,39 @@ pipeline {
                         -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
                         -Dsonar.token=${SONAR_TOKEN}
                         """
-
                     }
                 }
             }
         }
 
-        // ─────────────────────────────
-        // Build Docker Images
-        // ─────────────────────────────
         stage('🐳 Build Docker Images') {
             steps {
-                echo '🐳 Building Docker images...'
                 sh 'docker-compose build'
             }
         }
 
-        // ─────────────────────────────
-        // Deploy Application
-        // ─────────────────────────────
         stage('🚀 Deploy') {
             steps {
-
-                echo '🚀 Deploying application with Docker Compose...'
-
                 sh '''
                 docker-compose down
                 docker-compose up -d
                 '''
             }
         }
-
     }
 
-    // ─────────────────────────────
-    // Post Actions
-    // ─────────────────────────────
     post {
 
         success {
-            echo '✅ Pipeline succeeded!'
+            echo 'Pipeline succeeded'
         }
 
         failure {
-            echo '❌ Pipeline failed!'
+            echo 'Pipeline failed'
         }
 
         always {
             cleanWs()
         }
-
     }
-
 }
