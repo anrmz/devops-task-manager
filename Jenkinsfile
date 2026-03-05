@@ -1,13 +1,18 @@
 pipeline {
     agent any
 
+    tools {
+    nodejs "nodejs"
+}
+
     environment {
         // Slack webhook — add SLACK_WEBHOOK in Jenkins Credentials
         SLACK_WEBHOOK = credentials('slack-webhook-url')
         SONAR_TOKEN   = credentials('sonar-token')
         COMPOSE_FILE  = 'docker-compose.yml'
-        APP_NAME      = 'Task Manager'
+        APP_NAME      = 'devops-task-manager'
     }
+
 
     options {
         timeout(time: 30, unit: 'MINUTES')
