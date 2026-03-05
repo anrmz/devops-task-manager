@@ -1,9 +1,7 @@
 pipeline {
     agent any
 
-    tools {
-    nodejs "nodejs"
-}
+    
 
     environment {
         // Slack webhook — add SLACK_WEBHOOK in Jenkins Credentials
