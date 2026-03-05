@@ -95,15 +95,16 @@ pipeline {
             withSonarQubeEnv('SonarQube') {
                 sh """
                 ${scannerHome}/bin/sonar-scanner \
-                  -Dsonar.projectKey=devops-task-manager \
-                  -Dsonar.sources=backend,frontend \
-                  -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
-                  -Dsonar.token=${SONAR_TOKEN}
+                -Dsonar.projectKey=devops-task-manager \
+                -Dsonar.sources=backend/src,frontend/src \
+                -Dsonar.tests=backend/tests \
+                -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
+                -Dsonar.token=${SONAR_TOKEN}
                 """
             }
         }
     }
-    }
+}
 
 
         // ──────────────────────────────────────────
