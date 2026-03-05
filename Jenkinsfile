@@ -1,20 +1,17 @@
 pipeline {
-    agent {
-    docker {
-        image 'node:18'
-        args '-u root:root'
-    }
-}
 
-    
+    agent {
+        docker {
+            image 'node:18'
+            args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
+        }
+    }
 
     environment {
-        // Slack webhook — add SLACK_WEBHOOK in Jenkins Credentials
-        SONAR_TOKEN   = credentials('sonar-token')
-        COMPOSE_FILE  = 'docker-compose.yml'
-        APP_NAME      = 'devops-task-manager'
+        SONAR_TOKEN  = credentials('sonar-token')
+        COMPOSE_FILE = 'docker-compose.yml'
+        APP_NAME     = 'devops-task-manager'
     }
-
 
     options {
         timeout(time: 30, unit: 'MINUTES')
@@ -23,28 +20,39 @@ pipeline {
     }
 
     triggers {
-        // Triggered automatically via GitHub Webhook
         githubPush()
     }
 
     stages {
 
-        // ──────────────────────────────────────────
-        // Stage 1 – Checkout
-        // ──────────────────────────────────────────
+        // ─────────────────────────────
+        // Checkout Source Code
+        // ─────────────────────────────
         stage('📥 Checkout') {
             steps {
-                echo '⬇️  Checking out source code...'
+                echo '⬇️ Checking out source code...'
                 checkout scm
-                sh 'git log -1 --pretty=format:"%h - %an: %s"'
             }
         }
 
-        // ──────────────────────────────────────────
-        // Stage 2 – Install Dependencies
-        // ──────────────────────────────────────────
+        // ─────────────────────────────
+        // Fix Git Safe Directory
+        // ─────────────────────────────
+        stage('🔧 Fix Git Safe Directory') {
+            steps {
+                sh '''
+                git config --global --add safe.directory /var/jenkins_home/workspace/devops-task-manager
+                '''
+            }
+        }
+
+        // ─────────────────────────────
+        // Install Dependencies
+        // ─────────────────────────────
         stage('📦 Install Dependencies') {
+
             parallel {
+
                 stage('Backend') {
                     steps {
                         dir('backend') {
@@ -53,6 +61,7 @@ pipeline {
                         }
                     }
                 }
+
                 stage('Frontend') {
                     steps {
                         dir('frontend') {
@@ -61,60 +70,54 @@ pipeline {
                         }
                     }
                 }
+
             }
         }
 
-        // ──────────────────────────────────────────
-//         // Stage 3 – Run Tests
-//         // ──────────────────────────────────────────
-//         stage('🧪 Run Tests') {
-//     steps {
-//         dir('backend') {
-//             echo '🧪 Running backend tests...'
-//             sh 'npm test || true'
-//         }
-//     }
-//             post {
-//     success {
-//         echo '✅ Pipeline succeeded!'
-//     }
+        // ─────────────────────────────
+        // Run Tests
+        // ─────────────────────────────
+        stage('🧪 Run Tests') {
+            steps {
+                dir('backend') {
+                    echo '🧪 Running backend tests...'
+                    sh 'npm test || true'
+                }
+            }
+        }
 
-//     failure {
-//         echo '❌ Pipeline failed!'
-//     }
-
-//     always {
-//         cleanWs()
-//     }
-// }
-//         }
-
-        // ──────────────────────────────────────────
-        // Stage 4 – SonarQube Analysis
-        // ──────────────────────────────────────────
+        // ─────────────────────────────
+        // SonarQube Analysis
+        // ─────────────────────────────
         stage('🔍 SonarQube Analysis') {
-    steps {
-        echo '🔍 Running SonarQube code quality analysis...'
-        script {
-            def scannerHome = tool 'sonar-scanner'
-            withSonarQubeEnv('SonarQube') {
-                sh """
-                ${scannerHome}/bin/sonar-scanner \
-                -Dsonar.projectKey=devops-task-manager \
-                -Dsonar.sources=backend/src,frontend/src \
-                -Dsonar.tests=backend/tests \
-                -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
-                -Dsonar.token=${SONAR_TOKEN}
-                """
+
+            steps {
+
+                echo '🔍 Running SonarQube analysis...'
+
+                script {
+
+                    def scannerHome = tool 'sonar-scanner'
+
+                    withSonarQubeEnv('SonarQube') {
+
+                        sh """
+                        ${scannerHome}/bin/sonar-scanner \
+                        -Dsonar.projectKey=devops-task-manager \
+                        -Dsonar.sources=backend/src,frontend/src \
+                        -Dsonar.tests=backend/tests \
+                        -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
+                        -Dsonar.token=${SONAR_TOKEN}
+                        """
+
+                    }
+                }
             }
         }
-    }
-}
 
-
-        // ──────────────────────────────────────────
-        // Stage 5 – Build Docker Images
-        // ──────────────────────────────────────────
+        // ─────────────────────────────
+        // Build Docker Images
+        // ─────────────────────────────
         stage('🐳 Build Docker Images') {
             steps {
                 echo '🐳 Building Docker images...'
@@ -122,35 +125,40 @@ pipeline {
             }
         }
 
-        // ──────────────────────────────────────────
-        // Stage 6 – Deploy with Docker Compose
-        // ──────────────────────────────────────────
+        // ─────────────────────────────
+        // Deploy Application
+        // ─────────────────────────────
         stage('🚀 Deploy') {
-    steps {
-        echo '🚀 Deploying application...'
-        sh '''
-        docker-compose down
-        docker-compose up -d
-        '''
-    }
+            steps {
+
+                echo '🚀 Deploying application with Docker Compose...'
+
+                sh '''
+                docker-compose down
+                docker-compose up -d
+                '''
+            }
         }
+
     }
 
-    // ──────────────────────────────────────────
-    // Post-build – Slack Notifications
-    // ──────────────────────────────────────────
+    // ─────────────────────────────
+    // Post Actions
+    // ─────────────────────────────
     post {
 
-    success {
-        echo '✅ Pipeline succeeded!'
+        success {
+            echo '✅ Pipeline succeeded!'
+        }
+
+        failure {
+            echo '❌ Pipeline failed!'
+        }
+
+        always {
+            cleanWs()
+        }
+
     }
 
-    failure {
-        echo '❌ Pipeline failed!'
-    }
-
-    always {
-        cleanWs()
-    }
-}
 }
