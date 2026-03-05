@@ -1,20 +1,13 @@
 pipeline {
-    agent {
-        docker {
-            image 'node:18-bullseye'
-            args '-u root:root -v /var/run/docker.sock:/var/run/docker.sock'
-        }
-    }
+
+    agent any
 
     environment {
         SONAR_TOKEN = credentials('sonar-token')
-        APP_NAME = 'devops-task-manager'
     }
 
     options {
         timeout(time: 30, unit: 'MINUTES')
-        buildDiscarder(logRotator(numToKeepStr: '10'))
-        disableConcurrentBuilds()
     }
 
     triggers {
@@ -25,18 +18,20 @@ pipeline {
 
         stage('📥 Checkout') {
             steps {
-                echo "Checking out source code"
+                echo 'Checking out source code'
                 checkout scm
-            }
-        }
-
-        stage('🔧 Fix Git Safe Directory') {
-            steps {
-                sh 'git config --global --add safe.directory $PWD'
+                sh 'git config --global --add safe.directory $(pwd)'
             }
         }
 
         stage('📦 Install Dependencies') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root:root'
+                }
+            }
+
             parallel {
 
                 stage('Backend') {
@@ -59,6 +54,13 @@ pipeline {
         }
 
         stage('🧪 Run Tests') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root:root'
+                }
+            }
+
             steps {
                 dir('backend') {
                     sh 'npm test || true'
@@ -71,7 +73,6 @@ pipeline {
                 sh '''
                 apt-get update
                 apt-get install -y openjdk-17-jre
-                java -version
                 '''
             }
         }
@@ -80,6 +81,7 @@ pipeline {
             steps {
                 script {
                     def scannerHome = tool 'sonar-scanner'
+
                     withSonarQubeEnv('SonarQube') {
                         sh """
                         ${scannerHome}/bin/sonar-scanner \
@@ -93,8 +95,6 @@ pipeline {
                 }
             }
         }
-
-       
 
         stage('🐳 Build Docker Images') {
             steps {
@@ -112,16 +112,16 @@ pipeline {
                 '''
             }
         }
+
     }
 
     post {
-
         success {
-            echo "Pipeline succeeded"
+            echo 'Pipeline succeeded'
         }
 
         failure {
-            echo "Pipeline failed"
+            echo 'Pipeline failed'
         }
 
         always {
