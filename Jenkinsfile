@@ -1,5 +1,4 @@
 pipeline {
-
     agent {
         docker {
             image 'node:18-bullseye'
@@ -9,11 +8,13 @@ pipeline {
 
     environment {
         SONAR_TOKEN = credentials('sonar-token')
+        APP_NAME = 'devops-task-manager'
     }
 
     options {
         timeout(time: 30, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10'))
+        disableConcurrentBuilds()
     }
 
     triggers {
@@ -24,14 +25,14 @@ pipeline {
 
         stage('📥 Checkout') {
             steps {
-                echo 'Checking out source code'
+                echo "Checking out source code"
                 checkout scm
             }
         }
 
         stage('🔧 Fix Git Safe Directory') {
             steps {
-                sh 'git config --global --add safe.directory $WORKSPACE'
+                sh 'git config --global --add safe.directory $PWD'
             }
         }
 
@@ -93,13 +94,23 @@ pipeline {
             }
         }
 
+        stage('🐳 Install Docker Compose') {
+            steps {
+                sh '''
+                apt-get update
+                apt-get install -y docker-compose
+                docker-compose version
+                '''
+            }
+        }
+
         stage('🐳 Build Docker Images') {
             steps {
                 sh 'docker-compose build'
             }
         }
 
-        stage('🚀 Deploy') {
+        stage('🚀 Deploy Application') {
             steps {
                 sh '''
                 docker-compose down
@@ -112,11 +123,11 @@ pipeline {
     post {
 
         success {
-            echo 'Pipeline succeeded'
+            echo "Pipeline succeeded"
         }
 
         failure {
-            echo 'Pipeline failed'
+            echo "Pipeline failed"
         }
 
         always {
