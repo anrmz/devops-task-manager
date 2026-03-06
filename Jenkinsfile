@@ -137,20 +137,20 @@ pipeline {
     }
 
     post {
-
-        success {
-            slackSend(
-                channel: '#devops-ensi',
-                message: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-            )
-        }
-
-        failure {
-            slackSend(
-                channel: '#devops-ensi',
-                message: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-            )
-        }
-
+    success {
+        slackSend(
+            channel: '#devops-ensi',
+            color: 'good',
+            message: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+        )
     }
+
+    failure {
+        slackSend(
+            channel: '#devops-ensi',
+            color: 'danger',
+            message: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+        )
+    }
+}
 }
