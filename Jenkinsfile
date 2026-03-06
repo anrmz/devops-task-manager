@@ -137,22 +137,20 @@ pipeline {
     }
 
     post {
-    success {
-        slackSend(
-            channel: '#devops-ensi',
-            color: 'good',
-            message: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            tokenCredentialId: 'slack-webhook'
-        )
-    }
+  success {
+    sh '''
+    curl -X POST -H 'Content-type: application/json' \
+    --data '{"text":"✅ SUCCESS: devops-task-manager pipeline finished successfully!"}' \
+    https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+    '''
+  }
 
-    failure {
-        slackSend(
-            channel: '#devops-ensi',
-            color: 'danger',
-            message: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
-            tokenCredentialId: 'slack-webhook'
-        )
-    }
+  failure {
+    sh '''
+    curl -X POST -H 'Content-type: application/json' \
+    --data '{"text":"❌ FAILED: devops-task-manager pipeline failed!"}' \
+    https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+    '''
+  }
 }
 }
