@@ -10,6 +10,10 @@ pipeline {
         timeout(time: 30, unit: 'MINUTES')
     }
 
+    triggers {
+        githubPush()
+    }
+
     stages {
 
         stage('📥 Checkout') {
@@ -55,28 +59,42 @@ pipeline {
                         }
                     }
                 }
-
             }
         }
 
         stage('🧪 Run Tests') {
 
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-u root:root'
-                }
-            }
-
             steps {
-                dir('backend') {
-                    sh 'npm test || true'
+
+                script {
+
+                    sh '''
+                    docker rm -f mongo-test || true
+                    docker run -d -p 27017:27017 --name mongo-test mongo:7
+                    '''
+
+                    dir('backend') {
+
+                        sh '''
+                        export MONGO_URI=mongodb://localhost:27017/testdb
+                        npm install
+                        npm test || true
+                        '''
+
+                    }
+
+                    sh '''
+                    docker stop mongo-test || true
+                    docker rm mongo-test || true
+                    '''
                 }
             }
         }
 
         stage('🔍 SonarQube Analysis') {
+
             steps {
+
                 script {
 
                     def scannerHome = tool 'sonar-scanner'
@@ -88,8 +106,7 @@ pipeline {
                         -Dsonar.projectKey=devops-task-manager \
                         -Dsonar.sources=backend/src,frontend/src \
                         -Dsonar.tests=backend/tests \
-                        -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/** \
-                        -Dsonar.token=${SONAR_TOKEN}
+                        -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**
                         """
                     }
                 }
@@ -105,27 +122,39 @@ pipeline {
         stage('🚀 Deploy Application') {
             steps {
                 sh '''
-                docker-compose down
+                docker-compose down || true
                 docker-compose up -d
                 '''
             }
         }
-
     }
 
     post {
 
         success {
-            echo 'Pipeline succeeded'
+            script {
+                try {
+                    slackSend(
+                        channel: '#devops-ensi',
+                        message: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                    )
+                } catch (err) {
+                    echo "Slack notification failed"
+                }
+            }
         }
 
         failure {
-            echo 'Pipeline failed'
+            script {
+                try {
+                    slackSend(
+                        channel: '#devops-ensi',
+                        message: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+                    )
+                } catch (err) {
+                    echo "Slack notification failed"
+                }
+            }
         }
-
-        always {
-            cleanWs()
-        }
-
     }
 }
