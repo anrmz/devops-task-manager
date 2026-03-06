@@ -61,7 +61,14 @@ pipeline {
             }
         }
 
-        stage('🧪 Run Tests') {
+        stage('🐳 Start Mongo Test Container') {
+            steps {
+                sh 'docker rm -f mongo-test || true'
+                sh 'docker run -d -p 27017:27017 --name mongo-test mongo:7'
+            }
+        }
+
+        stage('🧪 Run Backend Tests') {
 
             agent {
                 docker {
@@ -72,20 +79,21 @@ pipeline {
 
             steps {
 
-                sh 'docker rm -f mongo-test || true'
-                sh 'docker run -d -p 27017:27017 --name mongo-test mongo:7'
-
                 dir('backend') {
                     sh '''
-                    export MONGO_URI=mongodb://localhost:27017/testdb
+                    export MONGO_URI=mongodb://host.docker.internal:27017/testdb
                     npm install
                     npm test || true
                     '''
                 }
 
-                sh 'docker stop mongo-test'
-                sh 'docker rm mongo-test'
+            }
+        }
 
+        stage('🛑 Stop Mongo Test Container') {
+            steps {
+                sh 'docker stop mongo-test || true'
+                sh 'docker rm mongo-test || true'
             }
         }
 
