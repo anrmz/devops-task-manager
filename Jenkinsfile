@@ -29,7 +29,6 @@ pipeline {
             parallel {
 
                 stage('Backend') {
-
                     agent {
                         docker {
                             image 'node:18'
@@ -45,7 +44,6 @@ pipeline {
                 }
 
                 stage('Frontend') {
-
                     agent {
                         docker {
                             image 'node:18'
@@ -59,35 +57,35 @@ pipeline {
                         }
                     }
                 }
+
             }
         }
 
         stage('🧪 Run Tests') {
 
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-u root:root'
+                }
+            }
+
             steps {
 
-                script {
+                sh 'docker rm -f mongo-test || true'
+                sh 'docker run -d -p 27017:27017 --name mongo-test mongo:7'
 
+                dir('backend') {
                     sh '''
-                    docker rm -f mongo-test || true
-                    docker run -d -p 27017:27017 --name mongo-test mongo:7
-                    '''
-
-                    dir('backend') {
-
-                        sh '''
-                        export MONGO_URI=mongodb://localhost:27017/testdb
-                        npm install
-                        npm test || true
-                        '''
-
-                    }
-
-                    sh '''
-                    docker stop mongo-test || true
-                    docker rm mongo-test || true
+                    export MONGO_URI=mongodb://localhost:27017/testdb
+                    npm install
+                    npm test || true
                     '''
                 }
+
+                sh 'docker stop mongo-test'
+                sh 'docker rm mongo-test'
+
             }
         }
 
@@ -108,6 +106,7 @@ pipeline {
                         -Dsonar.tests=backend/tests \
                         -Dsonar.exclusions=**/node_modules/**,**/build/**,**/dist/**
                         """
+
                     }
                 }
             }
@@ -115,15 +114,15 @@ pipeline {
 
         stage('🐳 Build Docker Images') {
             steps {
-                sh 'docker-compose build'
+                sh 'docker compose build'
             }
         }
 
         stage('🚀 Deploy Application') {
             steps {
                 sh '''
-                docker-compose down || true
-                docker-compose up -d
+                docker compose down || true
+                docker compose up -d
                 '''
             }
         }
@@ -132,29 +131,18 @@ pipeline {
     post {
 
         success {
-            script {
-                try {
-                    slackSend(
-                        channel: '#devops-ensi',
-                        message: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-                    )
-                } catch (err) {
-                    echo "Slack notification failed"
-                }
-            }
+            slackSend(
+                channel: '#devops-ensi',
+                message: "✅ Build SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+            )
         }
 
         failure {
-            script {
-                try {
-                    slackSend(
-                        channel: '#devops-ensi',
-                        message: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
-                    )
-                } catch (err) {
-                    echo "Slack notification failed"
-                }
-            }
+            slackSend(
+                channel: '#devops-ensi',
+                message: "❌ Build FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+            )
         }
+
     }
 }
