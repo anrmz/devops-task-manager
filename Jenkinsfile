@@ -64,7 +64,7 @@ pipeline {
         stage('🐳 Start Mongo Test Container') {
             steps {
                 sh 'docker rm -f mongo-test || true'
-                sh 'docker run -d -p 27017:27017 --name mongo-test mongo:7'
+                sh 'docker run -d -p 27018:27017 --name mongo-test mongo:7'
             }
         }
 
@@ -81,7 +81,7 @@ pipeline {
 
                 dir('backend') {
                     sh '''
-                    export MONGO_URI=mongodb://host.docker.internal:27017/testdb
+                    export MONGO_URI=mongodb://host.docker.internal:27018/testdb
                     npm install
                     npm test || true
                     '''
@@ -141,7 +141,8 @@ pipeline {
         slackSend(
             channel: '#devops-ensi',
             color: 'good',
-            message: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+            message: "✅ SUCCESS: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            tokenCredentialId: 'slack-webhook'
         )
     }
 
@@ -149,7 +150,8 @@ pipeline {
         slackSend(
             channel: '#devops-ensi',
             color: 'danger',
-            message: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}"
+            message: "❌ FAILED: ${env.JOB_NAME} #${env.BUILD_NUMBER}",
+            tokenCredentialId: 'slack-webhook'
         )
     }
 }
