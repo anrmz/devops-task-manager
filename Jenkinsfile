@@ -140,8 +140,8 @@ pipeline {
   success {
     sh '''
     curl -X POST -H 'Content-type: application/json' \
-    --data '{"text":"✅ SUCCESS: devops-task-manager pipeline finished successfully!"}' \
-    https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+--data '{"text":"✅ SUCCESS: devops-task-manager pipeline finished successfully!"}' \
+$SLACK_WEBHOOK
     '''
   }
 
@@ -149,7 +149,7 @@ pipeline {
     sh '''
     curl -X POST -H 'Content-type: application/json' \
     --data '{"text":"❌ FAILED: devops-task-manager pipeline failed!"}' \
-    https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+    $SLACK_WEBHOOK
     '''
   }
 }
