@@ -137,20 +137,23 @@ pipeline {
     }
 
     post {
-  success {
-    sh '''
-    curl -X POST -H 'Content-type: application/json' \
---data '{"text":"✅ SUCCESS: devops-task-manager pipeline finished successfully!"}' \
-$SLACK_WEBHOOK
-    '''
-  }
+    success {
+        withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK')]) {
+            sh """
+            curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"✅ SUCCESS: devops-task-manager pipeline finished successfully!"}' \
+            $SLACK_WEBHOOK
+            """
+        }
+    }
 
-  failure {
-    sh '''
-    curl -X POST -H 'Content-type: application/json' \
-    --data '{"text":"❌ FAILED: devops-task-manager pipeline failed!"}' \
-    $SLACK_WEBHOOK
-    '''
-  }
-}
+    failure {
+        withCredentials([string(credentialsId: 'slack-webhook', variable: 'SLACK_WEBHOOK')]) {
+            sh """
+            curl -X POST -H 'Content-type: application/json' \
+            --data '{"text":"❌ FAILED: devops-task-manager pipeline failed!"}' \
+            $SLACK_WEBHOOK
+            """
+        }
+    }
 }
